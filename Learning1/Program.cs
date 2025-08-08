@@ -13,9 +13,11 @@ class Calculator {
     }
 }
 
-class Program {
+class Program
+{
 
-    static void Main() { 
+    static void Main()
+    {
         Calculator kalkulacka = new Calculator();
         double result = 0;
         bool first = true;
@@ -34,21 +36,24 @@ class Program {
                 }
                 first = false;
             }
-            else {
+            else
+            {
                 a = result;
                 Console.WriteLine($"Aktualny vysledok: {a}");
             }
 
             Console.WriteLine("Zadaj operator +, -, *, /");
             string input = Console.ReadLine();
-            if (string.IsNullOrEmpty(input)) {
+            if (string.IsNullOrEmpty(input))
+            {
                 Console.WriteLine("Nezadal si znak");
                 continue;
             }
             char op = input[0];
 
             Console.WriteLine("Zadaj druhe cislo : ");
-            if (!double.TryParse(Console.ReadLine(), out double b)) {
+            if (!double.TryParse(Console.ReadLine(), out double b))
+            {
                 Console.WriteLine("Neplatne cislo");
                 continue;
             }
@@ -81,10 +86,13 @@ class Program {
 
             Console.Write("Chces pokracovat ? (a/n): ");
             string vysledok = Console.ReadLine();
-            if (vysledok.ToLower() != "a") {
+            if (vysledok.ToLower() != "a")
+            {
                 break;
             }
         }
         Console.WriteLine("Koniec programu.");
-    }   
+    }
 }
+
+//ahoj
