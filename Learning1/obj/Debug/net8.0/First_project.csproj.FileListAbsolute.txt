@@ -1,0 +1,14 @@
+E:\Projects\Learning1\First_project\bin\Debug\net8.0\First_project.exe
+E:\Projects\Learning1\First_project\bin\Debug\net8.0\First_project.deps.json
+E:\Projects\Learning1\First_project\bin\Debug\net8.0\First_project.runtimeconfig.json
+E:\Projects\Learning1\First_project\bin\Debug\net8.0\First_project.dll
+E:\Projects\Learning1\First_project\bin\Debug\net8.0\First_project.pdb
+E:\Projects\Learning1\First_project\obj\Debug\net8.0\First_project.GeneratedMSBuildEditorConfig.editorconfig
+E:\Projects\Learning1\First_project\obj\Debug\net8.0\First_project.AssemblyInfoInputs.cache
+E:\Projects\Learning1\First_project\obj\Debug\net8.0\First_project.AssemblyInfo.cs
+E:\Projects\Learning1\First_project\obj\Debug\net8.0\First_project.csproj.CoreCompileInputs.cache
+E:\Projects\Learning1\First_project\obj\Debug\net8.0\First_project.dll
+E:\Projects\Learning1\First_project\obj\Debug\net8.0\refint\First_project.dll
+E:\Projects\Learning1\First_project\obj\Debug\net8.0\First_project.pdb
+E:\Projects\Learning1\First_project\obj\Debug\net8.0\First_project.genruntimeconfig.cache
+E:\Projects\Learning1\First_project\obj\Debug\net8.0\ref\First_project.dll
