@@ -9,7 +9,7 @@ namespace WeatherApp
             Console.WriteLine("=== WEATHER APP ===");
             //fake simluacia API
             Console.Write("Zadaj nazov mesta: ");
-            string mesto = Console.ReadLine();
+            string mesto = Console.ReadLine()!;
 
             Console.WriteLine($"Hladam pocasie pre {mesto}...");
 
