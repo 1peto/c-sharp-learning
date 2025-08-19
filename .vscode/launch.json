@@ -1,0 +1,38 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Calculator",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-calculator",
+            "program": "${workspaceFolder}/Calculator/bin/Debug/net9.0/Calculator.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/Calculator",
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        },
+        {
+            "name": "ConsoleApp1",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-consoleapp1",
+            "program": "${workspaceFolder}/ConsoleApp1/bin/Debug/net8.0/ConsoleApp1.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/ConsoleApp1",
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        },
+        {
+            "name": "WeatherApp",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-weatherapp",
+            "program": "${workspaceFolder}/WeatherApp/bin/Debug/net9.0/WeatherApp.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/WeatherApp",
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        }
+    ]
+}
