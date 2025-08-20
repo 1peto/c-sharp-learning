@@ -6,6 +6,43 @@ namespace WeatherApp
 {
     class Program
     {
+        //funkcie pre manualne parsovanie
+        static string ParseMesto(string json)
+        {
+            //najprv najdeme zaciatok mesta po "name":"
+            int startIndex = json.IndexOf("\"name\":\"") + 8;
+            //potom najdeme kde sa konci nazov mesta "
+            int endIndex = json.IndexOf("\"", startIndex);
+            //a kedze to je string metoda, vratime najdeny string
+            return json.Substring(startIndex, endIndex - startIndex);
+        }
+
+        static double ParseTeplota(string json)
+        {
+            int startIndex = json.IndexOf("\"temp\":") + 7;
+            //Teplota moze koncit ciarkou alebo kuceravou zatvorkou
+            int endIndex = json.IndexOf(",", startIndex);
+            //ked nenajde ciarku, hlada }
+            if (endIndex == -1)
+            {
+                endIndex = json.IndexOf("}", startIndex);
+            }
+
+            //vyberieme cislo ako string, a konvertujeme na double
+            string teplota = json.Substring(startIndex, endIndex - startIndex);
+            //pozuijeme InvariantCulture pre anglicky format
+            return double.Parse(teplota, System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        static string ParsePocasie(string json)
+        {
+            int startIndex = json.IndexOf("\"description\":\"") + 15;
+            int endIndex = json.IndexOf("\"", startIndex);
+
+            return json.Substring(startIndex, endIndex - startIndex);
+        }
+
+        //main
         static async Task Main(string[] args)
         {
             Console.WriteLine("=== WEATHER APP ===");
@@ -25,8 +62,16 @@ namespace WeatherApp
                 Console.WriteLine("Posielam HTTP request...");
                 string response = await client.GetStringAsync(url);
 
-                Console.WriteLine("Odpoved z API:");
-                Console.WriteLine(response);
+                //spracujeme udaje a pekne ich vypiseme pomocou novo vzniknutych metod
+                string parsovaneMesto = ParseMesto(response);
+                double teplota = ParseTeplota(response);
+                string pocasie = ParsePocasie(response);
+
+                //vypis
+                Console.WriteLine("=== POCASIE ===");
+                Console.WriteLine($"Mesto : {parsovaneMesto}");
+                Console.WriteLine($"Teplota: {teplota}°C");
+                Console.WriteLine($"Pocasie: {pocasie}");
             }
             catch (HttpRequestException e)
             {
