@@ -1,13 +1,58 @@
 ﻿using System;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace WeatherApp
 {
+
+    //nove triedy pre JSON deserializaciu
+    public class WeatherData
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; } = "";
+
+        [JsonProperty("main")]
+        public MainData Main { get; set; } = new MainData();
+
+        [JsonProperty("weather")]
+        public WeatherDescription[] Weather { get; set; } = new WeatherDescription[0];
+    }
+
+    public class MainData
+    {
+        [JsonProperty("temp")]
+        public double Temperature { get; set; }
+
+        [JsonProperty("feels_like")]
+        public double FeelsLike { get; set; }
+
+        [JsonProperty("humidity")]
+        public int Humidity { get; set; }
+    }
+
+    public class WeatherDescription
+    {
+        [JsonProperty("main")]
+        public string Main { get; set; } = "";
+
+        [JsonProperty("description")]
+        public string Description { get; set; } = "";
+    }
+
+    //hlavna trieda, ktora obsahuje main
     class Program
     {
+
+        //nova metoda - Newtonsoft deserializacia
+        static WeatherData ParseWeatherJsonNewtonsoft(string json)
+        {
+            return JsonConvert.DeserializeObject<WeatherData>(json)!;
+        }
+
         //funkcie pre manualne parsovanie
-        static string ParseMesto(string json)
+
+        /*static string ParseMesto(string json)
         {
             //najprv najdeme zaciatok mesta po "name":"
             int startIndex = json.IndexOf("\"name\":\"") + 8;
@@ -40,7 +85,7 @@ namespace WeatherApp
             int endIndex = json.IndexOf("\"", startIndex);
 
             return json.Substring(startIndex, endIndex - startIndex);
-        }
+        }*/
 
         //main
         static async Task Main(string[] args)
@@ -62,16 +107,26 @@ namespace WeatherApp
                 Console.WriteLine("Posielam HTTP request...");
                 string response = await client.GetStringAsync(url);
 
-                //spracujeme udaje a pekne ich vypiseme pomocou novo vzniknutych metod
-                string parsovaneMesto = ParseMesto(response);
+                //stary vypis manualny
+
+                /*string parsovaneMesto = ParseMesto(response);
                 double teplota = ParseTeplota(response);
                 string pocasie = ParsePocasie(response);
-
-                //vypis
                 Console.WriteLine("=== POCASIE ===");
                 Console.WriteLine($"Mesto : {parsovaneMesto}");
                 Console.WriteLine($"Teplota: {teplota}°C");
-                Console.WriteLine($"Pocasie: {pocasie}");
+                Console.WriteLine($"Pocasie: {pocasie}");*/
+
+                //Newtonsoft deserializacia
+                WeatherData weather = ParseWeatherJsonNewtonsoft(response);
+
+                //vypis newtonsoft
+                Console.WriteLine($"Mesto: {weather.Name}");
+                Console.WriteLine($"Teplota: {weather.Main.Temperature}°C");
+                Console.WriteLine($"Pocitovo: {weather.Main.FeelsLike}°C");
+                Console.WriteLine($"Vlhkost: {weather.Main.Humidity}%");
+                Console.WriteLine($"Pocasie: {weather.Weather[0].Description}");
+                Console.WriteLine($"Kategoria: {weather.Weather[0].Main}");
             }
             catch (HttpRequestException e)
             {
