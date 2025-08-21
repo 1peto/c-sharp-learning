@@ -43,11 +43,56 @@ namespace WeatherApp
     //hlavna trieda, ktora obsahuje main
     class Program
     {
-
+        //na zaciatku triedy program dame api a http client
+        static string apiKluc = "c192e22b5e3142970a05ae25a3ff8d90";
+        static HttpClient client = new HttpClient();
+    
         //nova metoda - Newtonsoft deserializacia
         static WeatherData ParseWeatherJsonNewtonsoft(string json)
         {
             return JsonConvert.DeserializeObject<WeatherData>(json)!;
+        }
+
+        //vytvorim nove metody ktore sa budu pouzivat v main
+        //volanie pre aktualne pocasie
+        static async Task ZobrazAktualnePocasie()
+        {
+            Console.WriteLine("Zadaj nazov mesta: ");
+            string mesto = Console.ReadLine()!;
+
+            try
+            {
+                string url = $"https://api.openweathermap.org/data/2.5/weather?q={mesto}&appid={apiKluc}&units=metric";
+                string response = await client.GetStringAsync(url);
+
+                WeatherData weather = ParseWeatherJsonNewtonsoft(response);
+
+                Console.WriteLine("=== AKTUÁLNE POČASIE ===");
+                Console.WriteLine($"Mesto: {weather.Name}");
+                Console.WriteLine($"Teplota: {weather.Main.Temperature}°C");
+                Console.WriteLine($"Pocitovo: {weather.Main.FeelsLike}°C");
+                Console.WriteLine($"Vlhkosť: {weather.Main.Humidity}%");
+                Console.WriteLine($"Počasie: {weather.Weather[0].Description}");
+                Console.WriteLine($"Kategória: {weather.Weather[0].Main}");
+            }
+            catch (HttpRequestException e)
+            {
+                Console.WriteLine($"Mesto '{mesto}' sa nenaslo alebo problem s internetom");
+                Console.WriteLine($"Problem: {e.Message}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Neocakavana chyba: {e.Message}");
+            }
+        }
+
+        //5-dnova predpoved metoda/funkcia - NOVE
+        static async Task Zobraz5Days()
+        {
+            Console.WriteLine("Zadaj nazov mesta pre 5 dnovu predpoved: ");
+            string mesto = Console.ReadLine()!;
+
+            //tu POKRACOVAT
         }
 
         //funkcie pre manualne parsovanie
