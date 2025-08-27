@@ -89,10 +89,28 @@ namespace WeatherApp
         //5-dnova predpoved metoda/funkcia - NOVE
         static async Task Zobraz5Days()
         {
-            Console.WriteLine("Zadaj nazov mesta pre 5 dnovu predpoved: ");
+            Console.WriteLine("Zadaj nazov mesta: ");
             string mesto = Console.ReadLine()!;
 
-            //tu POKRACOVAT
+            try
+            {
+                //url pre forecast API
+                string url = $"https://api.openweathermap.org/data/2.5/forecast?q={mesto}&appid={apiKluc}&units=metric";
+                string response = await client.GetStringAsync(url);
+
+                Console.WriteLine("=== 5-DNOVA PREDPOVED ===");
+                //zatial nemam parsovanie
+                Console.WriteLine("zatial len ukazka JSON");
+                Console.WriteLine(response.Substring(0, Math.Min(300, response.Length)) + "...");
+            }
+            catch (HttpRequestException)
+            {
+                Console.WriteLine($"Mesto '{mesto}' sa nenaslo");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Neocakavana chyba {e.Message}");
+            }
         }
 
         //funkcie pre manualne parsovanie
@@ -137,50 +155,35 @@ namespace WeatherApp
         {
             Console.WriteLine("=== WEATHER APP ===");
 
-            Console.Write("Zadaj nazov mesta: ");
-            string mesto = Console.ReadLine()!;
-
-            Console.WriteLine($"Hladam pocasie pre {mesto}...");
-
-            //skutocny HTTP request na API
-            try
+            while (true)
             {
-                string apiKluc = "c192e22b5e3142970a05ae25a3ff8d90";
-                string url = $"https://api.openweathermap.org/data/2.5/weather?q={mesto}&appid={apiKluc}&units=metric";
+                Console.WriteLine("=== MENU ===");
+                Console.WriteLine("1. Aktualne poacsie");
+                Console.WriteLine("2. 5-dnova predpoved");
+                Console.WriteLine("3. Koniec");
+                Console.Write("Vyberte moznost (1-3): ");
 
-                using HttpClient client = new HttpClient();
-                Console.WriteLine("Posielam HTTP request...");
-                string response = await client.GetStringAsync(url);
+                string volba = Console.ReadLine()!;
 
-                //stary vypis manualny
+                switch (volba)
+                {
+                    case "1":
+                        await ZobrazAktualnePocasie();
+                        break;
+                    case "2":
+                        await Zobraz5Days();
+                        break;
+                    case "3":
+                        Console.WriteLine("Dakujem za pouzivanie!");
+                        client.Dispose();
+                        return;
+                    default:
+                        Console.WriteLine("Neplatna volba. Zadajte 1,2 alebo 3.");
+                        break;
+                }
 
-                /*string parsovaneMesto = ParseMesto(response);
-                double teplota = ParseTeplota(response);
-                string pocasie = ParsePocasie(response);
-                Console.WriteLine("=== POCASIE ===");
-                Console.WriteLine($"Mesto : {parsovaneMesto}");
-                Console.WriteLine($"Teplota: {teplota}°C");
-                Console.WriteLine($"Pocasie: {pocasie}");*/
-
-                //Newtonsoft deserializacia
-                WeatherData weather = ParseWeatherJsonNewtonsoft(response);
-
-                //vypis newtonsoft
-                Console.WriteLine($"Mesto: {weather.Name}");
-                Console.WriteLine($"Teplota: {weather.Main.Temperature}°C");
-                Console.WriteLine($"Pocitovo: {weather.Main.FeelsLike}°C");
-                Console.WriteLine($"Vlhkost: {weather.Main.Humidity}%");
-                Console.WriteLine($"Pocasie: {weather.Weather[0].Description}");
-                Console.WriteLine($"Kategoria: {weather.Weather[0].Main}");
-            }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine($"Chyba pri volani API: {e.Message}");
-                Console.WriteLine("Skontrolujte, internetove pripojenie, ci nazov mesta.");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Neocakavana chyba: {e.Message}");
+                Console.WriteLine("Stlacte Enter pre pokracovanie...");
+                Console.ReadLine();
             }
 
             /* toto je len simulacia
