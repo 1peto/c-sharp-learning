@@ -2,11 +2,12 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace WeatherApp
 {
 
-    //nove triedy pre JSON deserializaciu
+    //nove triedy pre JSON deserializaciu pre momentalnu predpoved
     public class WeatherData
     {
         [JsonProperty("name")]
@@ -19,6 +20,7 @@ namespace WeatherApp
         public WeatherDescription[] Weather { get; set; } = new WeatherDescription[0];
     }
 
+    //momentalna predpoved
     public class MainData
     {
         [JsonProperty("temp")]
@@ -31,6 +33,7 @@ namespace WeatherApp
         public int Humidity { get; set; }
     }
 
+    //momentalna predpoved
     public class WeatherDescription
     {
         [JsonProperty("main")]
@@ -40,17 +43,47 @@ namespace WeatherApp
         public string Description { get; set; } = "";
     }
 
+    //deserializacia pre 5-day predpoved
+    //hlavna triedna pre forecast
+    public class ForecastData
+    {
+        [JsonProperty("list")]
+        public ForecastItem[] List { get; set; } = new ForecastItem[0];
+    }
+
+    //forecast predpoved (jedna polozka predpovede)
+    public class ForecastItem
+    {
+        [JsonProperty("dt")]
+        public long DataTime { get; set; } //Unix timestamp
+
+        [JsonProperty("main")]
+        public MainData Main { get; set; } = new MainData(); //existujuca MainData
+
+        [JsonProperty("weather")]
+        public WeatherDescription[] Weather { get; set; } = new WeatherDescription[0];
+
+        [JsonProperty("dt_txt")]
+        public string DataTimeText { get; set; } = "";
+    }
+
     //hlavna trieda, ktora obsahuje main
     class Program
     {
         //na zaciatku triedy program dame api a http client
         static string apiKluc = "c192e22b5e3142970a05ae25a3ff8d90";
         static HttpClient client = new HttpClient();
-    
+
         //nova metoda - Newtonsoft deserializacia
         static WeatherData ParseWeatherJsonNewtonsoft(string json)
         {
             return JsonConvert.DeserializeObject<WeatherData>(json)!;
+        }
+
+        //deserializacia pre forecast
+        static ForecastData ParseForecastJsonNewtonsoft(string json)
+        {
+            return JsonConvert.DeserializeObject<ForecastData>(json)!;
         }
 
         //vytvorim nove metody ktore sa budu pouzivat v main
@@ -98,10 +131,29 @@ namespace WeatherApp
                 string url = $"https://api.openweathermap.org/data/2.5/forecast?q={mesto}&appid={apiKluc}&units=metric";
                 string response = await client.GetStringAsync(url);
 
+                ForecastData forecast = ParseForecastJsonNewtonsoft(response);
+
                 Console.WriteLine("=== 5-DNOVA PREDPOVED ===");
-                //zatial nemam parsovanie
-                Console.WriteLine("zatial len ukazka JSON");
-                Console.WriteLine(response.Substring(0, Math.Min(300, response.Length)) + "...");
+
+                //zobrazime len jeden zaznam na kazdy den
+                var denneZaznamy = forecast.List
+                    .Where(item => item.DataTimeText.Contains("12:00:00"))
+                    .Take(5);
+
+                int den = 1;
+                foreach (var item in denneZaznamy)
+                {
+                    // Extrahovat datum
+                    string datum = item.DataTimeText.Split(' ')[0];
+
+                    Console.WriteLine($" Den {den} - {datum}");
+                    Console.WriteLine($" Teplota: {item.Main.Temperature}°C (pocitovo {item.Main.FeelsLike}°C)");
+                    Console.WriteLine($" Vlhkost: {item.Main.Humidity}%");
+                    Console.WriteLine($" Pocasie: {item.Weather[0].Description}");
+
+                    Console.WriteLine("--------------------------------");
+                    den++;
+                }
             }
             catch (HttpRequestException)
             {
