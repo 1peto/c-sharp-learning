@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace WeatherApp
 {
@@ -72,6 +73,52 @@ namespace WeatherApp
             }
         }
 
+        //zobrazenie oblubenych miest
+        static async Task ZobrazOblubeneMesta()
+        {
+            FavoriteCitiesService service = new FavoriteCitiesService();
+            List<string> mesta = service.NacitajOblubeneMesta();
+
+            if (mesta.Count == 0)
+            {
+                Console.WriteLine("ziadne oblubene mesta nie su ulozene.");
+                return;
+            }
+
+            Console.WriteLine("=== OBLUBENE MESTA ===");
+            for (int i = 0; i < mesta.Count; i++)
+            {
+                Console.WriteLine($"{i}. {mesta[i]}");
+            }
+
+            Console.Write($"Vyberte cislo mesta (0-{mesta.Count - 1}): ");
+
+            if (int.TryParse(Console.ReadLine(), out int index) && index >= 0 && index < mesta.Count)
+            {
+                string mesto = mesta[index];
+
+                try
+                {
+                    WeatherData weather = await weatherService.ZiskajAktualnePocasie(mesto);
+
+                    Console.WriteLine("=== AKTUÁLNE POČASIE ===");
+                    Console.WriteLine($"Mesto: {weather.Name}");
+                    Console.WriteLine($"Teplota: {weather.Main.Temperature}°C");
+                    Console.WriteLine($"Pocitovo: {weather.Main.FeelsLike}°C");
+                    Console.WriteLine($"Vlhkosť: {weather.Main.Humidity}%");
+                    Console.WriteLine($"Pocasie: {weather.Weather[0].Description}");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Chyba : {e.Message}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Neplatne cislo!");
+            }
+        }
+
         //main
         static async Task Main(string[] args)
         {
@@ -84,8 +131,9 @@ namespace WeatherApp
                     Console.WriteLine("=== MENU ===");
                     Console.WriteLine("1. Aktualne poacsie");
                     Console.WriteLine("2. 5-dnova predpoved");
-                    Console.WriteLine("3. Koniec");
-                    Console.Write("Vyberte moznost (1-3): ");
+                    Console.WriteLine("3. Test obl. miest");
+                    Console.WriteLine("4. Koniec");
+                    Console.Write("Vyberte moznost (1-4): ");
 
                     string volba = Console.ReadLine()!;
 
@@ -98,10 +146,13 @@ namespace WeatherApp
                             await Zobraz5Days();
                             break;
                         case "3":
+                            await ZobrazOblubeneMesta();
+                            break;
+                        case "4":
                             Console.WriteLine("Dakujem za pouzivanie!");
                             return;
                         default:
-                            Console.WriteLine("Neplatna volba. Zadajte 1,2 alebo 3.");
+                            Console.WriteLine("Neplatna volba. Zadajte 1,2,3 alebo 4.");
                             break;
                     }
 
