@@ -53,7 +53,7 @@ namespace WeatherApp
                 //zobrazime len jeden zaznam na kazdy den
                 var denneZaznamy = forecast.List
                     .Where(item => item.DataTimeText.Contains("12:00:00"))
-                    .Take(5);
+                    .Take(AppConfig.FORECAST_DAYS);
 
                 int den = 1;
                 foreach (var item in denneZaznamy)
@@ -65,7 +65,7 @@ namespace WeatherApp
                     Console.WriteLine($" Teplota: {item.Main.Temperature}°C (pocitovo {item.Main.FeelsLike}°C)");
                     Console.WriteLine($" Vlhkost: {item.Main.Humidity}%");
                     Console.WriteLine($" Pocasie: {item.Weather[0].Description}");
-                    Console.WriteLine("   " + new string('─', 40));
+                    Console.WriteLine(new string(AppConfig.SEPARATOR_THIN[0], AppConfig.MENU_WIDTH));
                     Console.WriteLine();
                     den++;
                 }
@@ -137,7 +137,7 @@ namespace WeatherApp
                 if (volba != "4")
                 { 
                     Console.WriteLine();
-                    Console.WriteLine(new string('─', 50));
+                    Console.WriteLine(new string(AppConfig.SEPARATOR_THIN[0], AppConfig.MENU_WIDTH));
                     Console.WriteLine("Stlacte Enter pre pokracovanie...");
                     Console.ReadLine();
                 }
@@ -238,7 +238,7 @@ namespace WeatherApp
         //main
         static async Task Main(string[] args)
         {
-            Console.WriteLine("=== WEATHER APP ===");
+            Console.WriteLine(AppConfig.APP_TITLE);
             Console.WriteLine();
 
             try
@@ -277,7 +277,7 @@ namespace WeatherApp
 
                     if (volba != "4")
                     { 
-                        Console.WriteLine("\n" + new string('=', 50));
+                        Console.WriteLine("\n" + new string(AppConfig.SEPARATOR_THICK[0], AppConfig.MENU_WIDTH));
                         Console.WriteLine("Stlacte Enter pre pokracovanie...");
                         Console.ReadLine();
                         Console.Clear();

@@ -6,7 +6,7 @@ namespace WeatherApp
 {
     public class FavoriteCitiesService
     {
-        private const string FAVORITES_FILE = "oblubene_mesta.txt";
+        private static readonly string FAVORITES_FILE = AppConfig.FAVORITES_FILE;
 
         //metoda na nacitanie oblubenych miest zo suboru
         public List<string> NacitajOblubeneMesta()

@@ -16,6 +16,7 @@ namespace WeatherApp
         {
             _apiKluc = apiKluc;
             _client = new HttpClient();
+            _client.Timeout = TimeSpan.FromSeconds(AppConfig.API_TIMEOUT_SECONDS);
         }
 
         //presuvame tu metody na ziskavanie pocasia, v Program.cs bude hlavne UI
@@ -23,7 +24,7 @@ namespace WeatherApp
         {
             try
             {
-                string url = $"https://api.openweathermap.org/data/2.5/weather?q={mesto}&appid={_apiKluc}&units=metric";
+                string url = $"{AppConfig.API_BASE_URL}/weather?q={mesto}&appid={_apiKluc}&units={AppConfig.UNITS}&lang={AppConfig.LANGUAGE}";
                 string response = await _client.GetStringAsync(url);
                 return JsonConvert.DeserializeObject<WeatherData>(response)!;
             }
@@ -37,7 +38,7 @@ namespace WeatherApp
         {
             try
             {
-                string url = $"https://api.openweathermap.org/data/2.5/forecast?q={mesto}&appid={_apiKluc}&units=metric";
+                string url = $"{AppConfig.API_BASE_URL}/forecast?q={mesto}&appid={_apiKluc}&units={AppConfig.UNITS}&lang={AppConfig.LANGUAGE}";
                 string response = await _client.GetStringAsync(url);
                 return JsonConvert.DeserializeObject<ForecastData>(response)!;
             }
