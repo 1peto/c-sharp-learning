@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using System.Linq;
-using System.Runtime.CompilerServices;
 
 namespace WeatherApp
 {
@@ -16,6 +15,7 @@ namespace WeatherApp
         {
             Console.WriteLine("Zadaj nazov mesta: ");
             string mesto = Console.ReadLine()!;
+            Console.WriteLine();
 
             try
             {
@@ -28,10 +28,12 @@ namespace WeatherApp
                 Console.WriteLine($"Vlhkosť: {weather.Main.Humidity}%");
                 Console.WriteLine($"Počasie: {weather.Weather[0].Description}");
                 Console.WriteLine($"Kategória: {weather.Weather[0].Main}");
+                Console.WriteLine();
             }
             catch (Exception e)
             {
                 Console.WriteLine($"Neocakavana chyba: {e.Message}");
+                Console.WriteLine();
             }
         }
 
@@ -40,6 +42,7 @@ namespace WeatherApp
         {
             Console.WriteLine("Zadaj nazov mesta: ");
             string mesto = Console.ReadLine()!;
+            Console.WriteLine();
 
             try
             {
@@ -62,14 +65,15 @@ namespace WeatherApp
                     Console.WriteLine($" Teplota: {item.Main.Temperature}°C (pocitovo {item.Main.FeelsLike}°C)");
                     Console.WriteLine($" Vlhkost: {item.Main.Humidity}%");
                     Console.WriteLine($" Pocasie: {item.Weather[0].Description}");
-
-                    Console.WriteLine("--------------------------------");
+                    Console.WriteLine("   " + new string('─', 40));
+                    Console.WriteLine();
                     den++;
                 }
             }
             catch (Exception e)
             {
                 Console.WriteLine($"Neocakavana chyba {e.Message}");
+                Console.WriteLine();
             }
         }
 
@@ -77,21 +81,83 @@ namespace WeatherApp
         static async Task ZobrazOblubeneMesta()
         {
             FavoriteCitiesService service = new FavoriteCitiesService();
+
+            while (true)
+            {
+                Console.Clear();
+
+                List<string> mesta = service.NacitajOblubeneMesta();
+
+                Console.WriteLine("=== OBLUBENE MESTA ===");
+                Console.WriteLine();
+
+                if (mesta.Count == 0)
+                {
+                    Console.WriteLine("ziadne oblubene mesta nie su ulozene.");
+                }
+                else
+                {
+                    for (int i = 0; i < mesta.Count; i++)
+                    {
+                        Console.WriteLine($"   {i}. {mesta[i]}");
+                    }
+                }
+
+                Console.WriteLine();
+                Console.WriteLine("Moznosti:");
+                Console.WriteLine("1. Zobrazit pocasie pre mesto");
+                Console.WriteLine("2. Pridat nove mesto");
+                Console.WriteLine("3. Odstranit mesto");
+                Console.WriteLine("4. Spat do hlavneho menu");
+                Console.WriteLine();
+                Console.Write("Vyberte moznost (1-4): ");
+
+                string volba = Console.ReadLine()!;
+                Console.WriteLine();
+
+                switch (volba)
+                {
+                    case "1":
+                        await ZobrazPocasiePreMesto(service);
+                        break;
+                    case "2":
+                        PridatNoveMesto(service);
+                        break;
+                    case "3":
+                        OdstranitMesto(service);
+                        break;
+                    case "4":
+                        Console.Clear();
+                        return; // Návrat do hlavného menu
+                    default:
+                        Console.WriteLine("Neplatna volba!");
+                        break;
+                }
+
+                if (volba != "4")
+                { 
+                    Console.WriteLine();
+                    Console.WriteLine(new string('─', 50));
+                    Console.WriteLine("Stlacte Enter pre pokracovanie...");
+                    Console.ReadLine();
+                }
+            }
+        }
+
+        //zobrazenie pocasie pre vybrane mesto z oblubenych
+        static async Task ZobrazPocasiePreMesto(FavoriteCitiesService service)
+        {
             List<string> mesta = service.NacitajOblubeneMesta();
 
             if (mesta.Count == 0)
             {
-                Console.WriteLine("ziadne oblubene mesta nie su ulozene.");
+                Console.WriteLine("Ziadne mesta na vyber!");
+                Console.WriteLine();
                 return;
             }
 
-            Console.WriteLine("=== OBLUBENE MESTA ===");
-            for (int i = 0; i < mesta.Count; i++)
-            {
-                Console.WriteLine($"{i}. {mesta[i]}");
-            }
-
             Console.Write($"Vyberte cislo mesta (0-{mesta.Count - 1}): ");
+            Console.WriteLine();
 
             if (int.TryParse(Console.ReadLine(), out int index) && index >= 0 && index < mesta.Count)
             {
@@ -107,35 +173,88 @@ namespace WeatherApp
                     Console.WriteLine($"Pocitovo: {weather.Main.FeelsLike}°C");
                     Console.WriteLine($"Vlhkosť: {weather.Main.Humidity}%");
                     Console.WriteLine($"Pocasie: {weather.Weather[0].Description}");
+                    Console.WriteLine();
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Chyba : {e.Message}");
+                    Console.WriteLine($"Chyba: {e.Message}");
+                    Console.WriteLine();
                 }
+            }
+            else
+            {
+                Console.WriteLine("Neplane cislo!");
+                Console.WriteLine();
+            }
+        }
+
+        static void PridatNoveMesto(FavoriteCitiesService service)
+        {
+            Console.Write("Zadaj nazov mesta na pridanie: ");
+            string mesto = Console.ReadLine()!;
+            Console.WriteLine();
+
+            if (!string.IsNullOrWhiteSpace(mesto))
+            {
+                service.PridajMesto(mesto);
+            }
+            else
+            {
+                Console.WriteLine("Nazor mesta nemoze byt prazdny!");
+            }
+            Console.WriteLine();
+        }
+
+        static void OdstranitMesto(FavoriteCitiesService service)
+        {
+            List<string> mesta = service.NacitajOblubeneMesta();
+
+            if (mesta.Count == 0)
+            {
+                Console.WriteLine("Ziadne mesta na odstranenie!");
+                Console.WriteLine();
+                return;
+            }
+
+            Console.WriteLine("Ktore mesto chcete odstranit?");
+            for (int i = 0; i < mesta.Count; i++)
+            {
+                Console.WriteLine($"{i}. {mesta[i]}");
+            }
+            Console.WriteLine();
+            Console.Write($"Zadajte cislo mesta (0-{mesta.Count - 1}): ");
+
+            if (int.TryParse(Console.ReadLine(), out int index))
+            {
+                service.OdstranMesto(index);
             }
             else
             {
                 Console.WriteLine("Neplatne cislo!");
             }
+            Console.WriteLine();
         }
 
         //main
         static async Task Main(string[] args)
         {
             Console.WriteLine("=== WEATHER APP ===");
+            Console.WriteLine();
 
             try
             {
                 while (true)
                 {
                     Console.WriteLine("=== MENU ===");
-                    Console.WriteLine("1. Aktualne poacsie");
+                    Console.WriteLine("1. Aktualne pocasie");
                     Console.WriteLine("2. 5-dnova predpoved");
-                    Console.WriteLine("3. Test obl. miest");
+                    Console.WriteLine("3. Oblubene mesta");
                     Console.WriteLine("4. Koniec");
+                    Console.WriteLine();
                     Console.Write("Vyberte moznost (1-4): ");
 
                     string volba = Console.ReadLine()!;
+                    Console.WriteLine();
 
                     switch (volba)
                     {
@@ -156,8 +275,13 @@ namespace WeatherApp
                             break;
                     }
 
-                    Console.WriteLine("Stlacte Enter pre pokracovanie...");
-                    Console.ReadLine();
+                    if (volba != "4")
+                    { 
+                        Console.WriteLine("\n" + new string('=', 50));
+                        Console.WriteLine("Stlacte Enter pre pokracovanie...");
+                        Console.ReadLine();
+                        Console.Clear();
+                    }
                 }
             }
             finally
@@ -167,41 +291,3 @@ namespace WeatherApp
         }
     }
 }
-
-
-//funkcie pre manualne parsovanie
-
-        /*static string ParseMesto(string json)
-        {
-            //najprv najdeme zaciatok mesta po "name":"
-            int startIndex = json.IndexOf("\"name\":\"") + 8;
-            //potom najdeme kde sa konci nazov mesta "
-            int endIndex = json.IndexOf("\"", startIndex);
-            //a kedze to je string metoda, vratime najdeny string
-            return json.Substring(startIndex, endIndex - startIndex);
-        }
-
-        static double ParseTeplota(string json)
-        {
-            int startIndex = json.IndexOf("\"temp\":") + 7;
-            //Teplota moze koncit ciarkou alebo kuceravou zatvorkou
-            int endIndex = json.IndexOf(",", startIndex);
-            //ked nenajde ciarku, hlada }
-            if (endIndex == -1)
-            {
-                endIndex = json.IndexOf("}", startIndex);
-            }
-
-            //vyberieme cislo ako string, a konvertujeme na double
-            string teplota = json.Substring(startIndex, endIndex - startIndex);
-            //pozuijeme InvariantCulture pre anglicky format
-            return double.Parse(teplota, System.Globalization.CultureInfo.InvariantCulture);
-        }
-
-        static string ParsePocasie(string json)
-        {
-            int startIndex = json.IndexOf("\"description\":\"") + 15;
-            int endIndex = json.IndexOf("\"", startIndex);
-
-            return json.Substring(startIndex, endIndex - startIndex);
-        }*/
