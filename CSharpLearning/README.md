@@ -213,13 +213,19 @@ public class Databaza {
 
 ### Čo je výnimka (Exception)?
 
-**Výnimka** je chyba, ktorá nastane počas behu programu. Bez spracovania = program spadne.
+**Výnimka** (exception) je špeciálny objekt, ktorý reprezentuje chybu alebo neočakávanú situáciu, ktorá nastala počas vykonávania programu. Keď nastane výnimka a nie je ošetrená, program sa ukončí (spadne) a zobrazí chybovú hlášku.
 
-### Try-Catch-Finally
+**Prečo používať výnimky?**
+- Oddeľujú kód spracovania chýb od normálneho kódu
+- Propagujú chyby nahor cez call stack
+- Poskytujú detailné informácie o chybe (typ, správa, miesto vzniku)
+- Umožňujú centralizované spracovanie chýb
+
+### Základná štruktúra: Try-Catch-Finally
 
 ```csharp
 try {
-    // Kód, ktorý môže vyhodiť výnimku
+    // Kód, ktorý môže vyhodiť výnimku (riziková časť)
     int vysledok = 10 / 0;  // DivideByZeroException
 }
 catch (DivideByZeroException ex) {
@@ -228,89 +234,596 @@ catch (DivideByZeroException ex) {
     Console.WriteLine($"Detail: {ex.Message}");
 }
 catch (Exception ex) {
-    // Všeobecné zachytenie akejkoľvek výnimky
-    Console.WriteLine($"Nastala chyba: {ex.Message}");
+    // Zachytenie všetkých ostatných výnimiek
+    Console.WriteLine($"Nastala neočakávaná chyba: {ex.Message}");
 }
 finally {
-    // Vykoná sa VŽDY, či nastala výnimka alebo nie
+    // Vykoná sa VŽDY - či výnimka nastala alebo nie
+    // Používa sa na upratanie zdrojov (uzatvorenie súborov, spojení, atď.)
     Console.WriteLine("Upratávam zdroje...");
+}
+```
+
+**Ako to funguje:**
+1. **try** blok obsahuje kód, ktorý môže vyhodiť výnimku
+2. **catch** blok zachytí výnimku a spracuje ju (môže byť viac catch blokov)
+3. **finally** blok sa vykoná vždy - používa sa na cleanup operácie
+4. Ak výnimka nie je zachytená, propaguje sa vyššie v call stacku
+
+### Praktické príklady Try-Catch
+
+#### Príklad 1: Práca so súbormi
+
+```csharp
+string cesta = "subor.txt";
+
+try {
+    string obsah = File.ReadAllText(cesta);
+    Console.WriteLine(obsah);
+}
+catch (FileNotFoundException ex) {
+    Console.WriteLine($"Súbor '{cesta}' neexistuje!");
+    Console.WriteLine($"Skontroluj, či je cesta správna: {ex.FileName}");
+}
+catch (UnauthorizedAccessException ex) {
+    Console.WriteLine("Nemáš oprávnenie na čítanie tohto súboru!");
+}
+catch (IOException ex) {
+    Console.WriteLine($"Chyba pri čítaní súboru: {ex.Message}");
+}
+finally {
+    Console.WriteLine("Pokus o čítanie súboru dokončený.");
+}
+```
+
+#### Príklad 2: Konverzia vstupu od používateľa
+
+```csharp
+Console.Write("Zadaj svoje vek: ");
+string vstup = Console.ReadLine();
+
+try {
+    int vek = int.Parse(vstup);
+    
+    if (vek < 0 || vek > 150) {
+        throw new ArgumentOutOfRangeException(nameof(vek), "Vek musí byť medzi 0 a 150!");
+    }
+    
+    Console.WriteLine($"Tvoj vek je: {vek}");
+}
+catch (FormatException) {
+    Console.WriteLine("Zadal si neplatné číslo! Zadaj celé číslo.");
+}
+catch (ArgumentOutOfRangeException ex) {
+    Console.WriteLine($"Neplatný vek: {ex.Message}");
+}
+catch (Exception ex) {
+    Console.WriteLine($"Nastala neočakávaná chyba: {ex.Message}");
+}
+```
+
+#### Príklad 3: Práca s poľom (Array)
+
+```csharp
+int[] cisla = { 10, 20, 30, 40, 50 };
+
+try {
+    Console.Write("Zadaj index (0-4): ");
+    int index = int.Parse(Console.ReadLine());
+    
+    int hodnota = cisla[index];
+    Console.WriteLine($"Hodnota na indexe {index} je: {hodnota}");
+}
+catch (IndexOutOfRangeException) {
+    Console.WriteLine($"Index mimo rozsahu! Pole má len {cisla.Length} prvkov (indexy 0-{cisla.Length - 1})");
+}
+catch (FormatException) {
+    Console.WriteLine("Zadaj platné celé číslo!");
+}
+```
+
+#### Príklad 4: Null Reference
+
+```csharp
+string text = null;
+
+try {
+    // Pokus o volanie metódy na null objekte
+    int dlzka = text.Length;  // NullReferenceException
+}
+catch (NullReferenceException) {
+    Console.WriteLine("Premenná 'text' je null! Nemôžeš volať Length na null.");
+    
+    // Oprava:
+    text = text ?? "prázdny text";  // Null-coalescing operator
+    Console.WriteLine($"Opravená hodnota: {text}");
 }
 ```
 
 ### Hierarchia výnimiek
 
+Všetky výnimky dedia z triedy `Exception`. Pochopenie hierarchie je kľúčové pre správne zachytávanie.
+
 ```
-Exception (základná trieda)
-├── SystemException
+Exception (základná trieda pre všetky výnimky)
+│
+├── SystemException (systémové výnimky)
+│   │
 │   ├── ArithmeticException
-│   │   ├── DivideByZeroException
-│   │   └── OverflowException
-│   ├── NullReferenceException
-│   ├── IndexOutOfRangeException
-│   ├── InvalidOperationException
-│   └── ArgumentException
-│       ├── ArgumentNullException
-│       └── ArgumentOutOfRangeException
-├── IOException
+│   │   ├── DivideByZeroException (delenie nulou)
+│   │   ├── OverflowException (pretečenie čísla)
+│   │   └── NotFiniteNumberException
+│   │
+│   ├── NullReferenceException (prístup k null objektu)
+│   ├── IndexOutOfRangeException (index mimo rozsahu)
+│   ├── InvalidOperationException (neplatná operácia)
+│   ├── InvalidCastException (neplatné pretypovanie)
+│   │
+│   └── ArgumentException (neplatný argument)
+│       ├── ArgumentNullException (null argument)
+│       └── ArgumentOutOfRangeException (argument mimo rozsahu)
+│
+├── IOException (vstup/výstup)
+│   ├── FileNotFoundException (súbor nenájdený)
+│   ├── DirectoryNotFoundException
+│   ├── PathTooLongException
+│   └── EndOfStreamException
+│
+├── FormatException (zlý formát)
+├── NotSupportedException (nepodporované)
+├── TimeoutException (timeout)
 └── ... mnoho ďalších
 ```
 
-**Pravidlo:** Zachytávaj výnimky od KONKRÉTNYCH po VŠEOBECNÉ!
+### Pravidlá zachytávania výnimiek
 
+#### ⚠️ Pravidlo #1: Zachytávaj od KONKRÉTNYCH po VŠEOBECNÉ
+
+```csharp
+try {
+    string obsah = File.ReadAllText("data.txt");
+}
+catch (FileNotFoundException ex) {      // ✅ Najkonkrétnejšia
+    Console.WriteLine("Súbor neexistuje");
+}
+catch (IOException ex) {                 // ✅ Všeobecnejšia (parent)
+    Console.WriteLine("Chyba I/O");
+}
+catch (Exception ex) {                   // ✅ Najvšeobecnejšia (root)
+    Console.WriteLine("Akákoľvek iná chyba");
+}
+```
+
+**❌ NESPRÁVNE:**
 ```csharp
 try {
     // ...
 }
-catch (FileNotFoundException ex) { }  // Konkrétna
-catch (IOException ex) { }            // Všeobecnejšia
-catch (Exception ex) { }               // Najvšeobecnejšia
+catch (Exception ex) {              // ❌ Najvšeobecnejšia prvá = zachytí všetko
+    Console.WriteLine("Chyba");
+}
+catch (FileNotFoundException ex) {  // ❌ NIKDY sa nevykoná! (unreachable code)
+    Console.WriteLine("Súbor neexistuje");
+}
 ```
 
-### Vytváranie vlastných výnimiek
+#### Pravidlo #2: Nezachytávaj výnimky, ktoré nevieš spracovať
 
 ```csharp
-public class PrazdnyUcetException : Exception {
-    public decimal AktualnyZostatok { get; }
+// ❌ ZLÉ - "prehltneš" výnimku bez spracovania
+try {
+    NiecoNebezpecne();
+}
+catch (Exception) {
+    // Nič... (chyba sa stratila)
+}
+
+// ✅ DOBRÉ - zachyť len to, čo vieš spracoovať
+try {
+    NiecoNebezpecne();
+}
+catch (SpecifickaVynimka ex) {
+    // Spracuj špecifickú výnimku
+    Console.WriteLine($"Riešim problém: {ex.Message}");
+}
+// Ostatné výnimky sa propagujú ďalej
+```
+
+### Vlastnosti objektu Exception
+
+Každý objekt výnimky obsahuje užitočné informácie:
+
+```csharp
+try {
+    throw new InvalidOperationException("Niečo sa pokazilo!");
+}
+catch (Exception ex) {
+    Console.WriteLine($"Typ: {ex.GetType().Name}");           // Typ výnimky
+    Console.WriteLine($"Správa: {ex.Message}");               // Popis chyby
+    Console.WriteLine($"Stack Trace:\n{ex.StackTrace}");      // Kde nastala
+    Console.WriteLine($"Source: {ex.Source}");                // Odkiaľ pochádza
+    Console.WriteLine($"Target Site: {ex.TargetSite}");       // Ktorá metóda
     
-    public PrazdnyUcetException(decimal zostatok) 
-        : base($"Nedostatok prostriedkov. Zostatok: {zostatok}") {
-        AktualnyZostatok = zostatok;
+    if (ex.InnerException != null) {                          // Vnorená výnimka
+        Console.WriteLine($"Vnorená: {ex.InnerException.Message}");
+    }
+}
+```
+
+### Vyhadzovanie výnimiek (throw)
+
+#### Základné použitie throw
+
+```csharp
+public void NastavVek(int vek) {
+    if (vek < 0) {
+        throw new ArgumentException("Vek nemôže byť záporný!");
+    }
+    if (vek > 150) {
+        throw new ArgumentOutOfRangeException(nameof(vek), vek, "Vek je príliš vysoký!");
+    }
+    
+    this.vek = vek;
+}
+```
+
+#### Throw vs Throw ex - DÔLEŽITÝ rozdiel!
+
+```csharp
+try {
+    NebezpecnaMetoda();
+}
+catch (Exception ex) {
+    LogujChybu(ex);
+    
+    throw;      // ✅ DOBRÉ - zachová PÔVODNÝ stack trace
+    // throw ex; // ❌ ZLÉ - PREPÍŠE stack trace (stratíš informáciu, kde chyba vznikla)
+}
+```
+
+**Prečo je to dôležité?**
+```csharp
+// Originálny stack trace:
+//   at MetodaC() line 50
+//   at MetodaB() line 30  
+//   at MetodaA() line 10
+
+// throw;    => Zachová celý stack trace ✅
+// throw ex; => Stack trace začne od aktuálneho miesta ❌
+```
+
+#### Wrapping výnimiek (InnerException)
+
+```csharp
+public void NacitajData(string cesta) {
+    try {
+        string json = File.ReadAllText(cesta);
+        var data = JsonConvert.DeserializeObject(json);
+    }
+    catch (FileNotFoundException ex) {
+        // Zabal originálnu výnimku do novej s lepším kontextom
+        throw new DataException($"Nepodarilo sa načítať dáta z '{cesta}'", ex);
+    }
+    catch (JsonException ex) {
+        throw new DataException($"Súbor '{cesta}' obsahuje neplatný JSON", ex);
     }
 }
 
 // Použitie:
-public void Vyber(decimal suma) {
-    if (zostatok < suma) {
-        throw new PrazdnyUcetException(zostatok);
-    }
-    zostatok -= suma;
+try {
+    NacitajData("config.json");
+}
+catch (DataException ex) {
+    Console.WriteLine($"Chyba: {ex.Message}");
+    Console.WriteLine($"Pôvodná príčina: {ex.InnerException?.Message}");
 }
 ```
 
-### Throw vs Throw ex
+### Vytváranie vlastných výnimiek
+
+Vlastné výnimky používaj, keď štandardné nepokrývajú tvoj prípad.
+
+#### Jednoduchá vlastná výnimka
 
 ```csharp
-catch (Exception ex) {
-    // Zaloguj chybu...
+public class PrazdnyUcetException : Exception {
+    public decimal AktualnyZostatok { get; }
+    public decimal PozadovanaSuma { get; }
     
-    throw;     // ✅ DOBRÉ - zachová pôvodný stack trace
-    throw ex;  // ❌ ZLÉ - prepíše stack trace
+    public PrazdnyUcetException(decimal zostatok, decimal suma) 
+        : base($"Nedostatok prostriedkov. Zostatok: {zostatok} €, požadované: {suma} €") {
+        AktualnyZostatok = zostatok;
+        PozadovanaSuma = suma;
+    }
+    
+    // Konštruktor s inner exception
+    public PrazdnyUcetException(decimal zostatok, decimal suma, Exception innerException) 
+        : base($"Nedostatok prostriedkov. Zostatok: {zostatok} €, požadované: {suma} €", innerException) {
+        AktualnyZostatok = zostatok;
+        PozadovanaSuma = suma;
+    }
 }
 ```
 
-### When klauzula (od C# 6.0)
+#### Použitie vlastnej výnimky
+
+```csharp
+public class BankovyUcet {
+    private decimal zostatok;
+    
+    public void Vyber(decimal suma) {
+        if (suma <= 0) {
+            throw new ArgumentException("Suma musí byť väčšia ako 0", nameof(suma));
+        }
+        
+        if (zostatok < suma) {
+            throw new PrazdnyUcetException(zostatok, suma);
+        }
+        
+        zostatok -= suma;
+        Console.WriteLine($"Vybraté: {suma} €. Nový zostatok: {zostatok} €");
+    }
+}
+
+// Použitie:
+var ucet = new BankovyUcet();
+try {
+    ucet.Vyber(1000);
+}
+catch (PrazdnyUcetException ex) {
+    Console.WriteLine(ex.Message);
+    Console.WriteLine($"Chýba ti: {ex.PozadovanaSuma - ex.AktualnyZostatok} €");
+}
+catch (ArgumentException ex) {
+    Console.WriteLine($"Neplatný argument: {ex.Message}");
+}
+```
+
+### When klauzula - Filter výnimiek (C# 6.0+)
+
+**When** umožňuje zachytiť výnimku len pri splnení podmienky.
+
+#### Základný príklad
 
 ```csharp
 try {
     DownloadFile(url);
 }
 catch (WebException ex) when (ex.Status == WebExceptionStatus.Timeout) {
-    // Spracuj len timeout výnimky
     Console.WriteLine("Server neodpovedá, skúsim znova...");
+    Retry();
+}
+catch (WebException ex) when (ex.Status == WebExceptionStatus.ConnectFailure) {
+    Console.WriteLine("Nepodarilo sa pripojiť k serveru");
 }
 catch (WebException ex) {
-    // Ostatné web výnimky
-    Console.WriteLine($"Sieťová chyba: {ex.Message}");
+    Console.WriteLine($"Iná sieťová chyba: {ex.Status}");
+}
+```
+
+#### When s viacerými podmienkami
+
+```csharp
+try {
+    ProcessFile(fileName);
+}
+catch (IOException ex) when (ex.Message.Contains("locked")) {
+    Console.WriteLine("Súbor je používaný iným procesom. Čakám...");
+    Thread.Sleep(1000);
+    Retry();
+}
+catch (IOException ex) when (IsDiskFull(ex)) {
+    Console.WriteLine("Disk je plný! Uvoľni miesto.");
+}
+catch (IOException ex) {
+    Console.WriteLine($"Iná I/O chyba: {ex.Message}");
+}
+
+bool IsDiskFull(IOException ex) {
+    return ex.HResult == -2147024784; // Disk full error code
+}
+```
+
+#### When s logovaním
+
+```csharp
+try {
+    KritickaOperacia();
+}
+catch (Exception ex) when (LogException(ex)) {
+    // Tento blok sa NIKDY nevykoná (LogException vráti false)
+    // Ale výnimka sa zaloguje skôr, než sa propaguje ďalej
+}
+
+bool LogException(Exception ex) {
+    Console.WriteLine($"[LOG] {DateTime.Now}: {ex.Message}");
+    return false;  // Nikdy nezachyť, len zaloguj
+}
+```
+
+### Finally blok - Upratovanie zdrojov
+
+**Finally** sa vykoná VŽDY - aj keď nastane výnimka, aj keď nie.
+
+```csharp
+FileStream fs = null;
+try {
+    fs = new FileStream("data.txt", FileMode.Open);
+    // Práca so súborom...
+}
+catch (IOException ex) {
+    Console.WriteLine($"Chyba: {ex.Message}");
+}
+finally {
+    // Zatvor súbor - vykoná sa VŽDY
+    if (fs != null) {
+        fs.Close();
+        Console.WriteLine("Súbor zatvorený");
+    }
+}
+```
+
+### Using statement - Automatické upratovanie
+
+**Using** je elegatnejší spôsob pre objekty implementujúce `IDisposable`.
+
+```csharp
+// Namiesto try-finally:
+using (FileStream fs = new FileStream("data.txt", FileMode.Open)) {
+    // Práca so súborom...
+}  // Automaticky sa zavolá fs.Dispose() na konci
+
+// C# 8.0+ using deklarácia:
+using FileStream fs = new FileStream("data.txt", FileMode.Open);
+// Práca so súborom...
+// fs.Dispose() sa zavolá na konci scope
+```
+
+#### Viacero using statements
+
+```csharp
+using (var reader = new StreamReader("vstup.txt"))
+using (var writer = new StreamWriter("vystup.txt")) {
+    string riadok;
+    while ((riadok = reader.ReadLine()) != null) {
+        writer.WriteLine(riadok.ToUpper());
+    }
+}  // Oba sa automaticky zatvoria
+```
+
+### Best Practices - Osvedčené postupy
+
+#### ✅ DOBRE
+
+```csharp
+// 1. Zachytávaj špecifické výnimky
+try {
+    var data = LoadData();
+}
+catch (FileNotFoundException ex) {
+    Console.WriteLine("Súbor nebol nájdený");
+}
+
+// 2. Používaj using pre IDisposable
+using (var stream = File.OpenRead("file.txt")) {
+    // ...
+}
+
+// 3. Validuj vstupy a vyhadzuj výnimky včas
+public void SetAge(int age) {
+    if (age < 0) throw new ArgumentException("Vek nemôže byť záporný");
+    this.age = age;
+}
+
+// 4. Pridaj kontext do vlastných výnimiek
+throw new DataException($"Chyba pri spracovaní súboru '{fileName}'", ex);
+
+// 5. Používaj when pre filtre
+catch (IOException ex) when (ex.Message.Contains("locked")) {
+    // Špecifické spracovanie
+}
+```
+
+#### ❌ ZLE
+
+```csharp
+// 1. Nezachytávaj všetko
+try {
+    // ...
+}
+catch (Exception) {  // ❌ Príliš všeobecné
+    // ...
+}
+
+// 2. Neprehĺtaj výnimky
+catch (Exception) {  // ❌ "Tiché zlyhanie"
+    // Nič...
+}
+
+// 3. Nepoužívaj výnimky na tok programu
+try {
+    return array[index];  // ❌
+}
+catch (IndexOutOfRangeException) {
+    return defaultValue;
+}
+// Namiesto toho:
+if (index >= 0 && index < array.Length) {
+    return array[index];
+}
+return defaultValue;
+
+// 4. Throw ex namiesto throw
+catch (Exception ex) {
+    throw ex;  // ❌ Stráca stack trace
+}
+```
+
+### Komplexný praktický príklad
+
+```csharp
+public class UserService {
+    public User GetUser(int userId) {
+        // Validácia vstupu
+        if (userId <= 0) {
+            throw new ArgumentException("User ID musí byť kladné číslo", nameof(userId));
+        }
+        
+        try {
+            // Pokus o načítanie z databázy
+            using (var connection = new SqlConnection(connectionString)) {
+                connection.Open();
+                
+                using (var command = new SqlCommand("SELECT * FROM Users WHERE Id = @Id", connection)) {
+                    command.Parameters.AddWithValue("@Id", userId);
+                    
+                    using (var reader = command.ExecuteReader()) {
+                        if (!reader.Read()) {
+                            throw new UserNotFoundException(userId);
+                        }
+                        
+                        return new User {
+                            Id = reader.GetInt32(0),
+                            Name = reader.GetString(1),
+                            Email = reader.GetString(2)
+                        };
+                    }
+                }
+            }
+        }
+        catch (SqlException ex) when (ex.Number == 53) {
+            // Špecifická SQL chyba - server nedostupný
+            throw new DatabaseUnavailableException("Databázový server je nedostupný", ex);
+        }
+        catch (SqlException ex) {
+            // Iné SQL chyby
+            throw new DatabaseException($"Chyba pri načítaní užívateľa {userId}", ex);
+        }
+        catch (UserNotFoundException) {
+            // Propaguj ďalej
+            throw;
+        }
+        catch (Exception ex) {
+            // Neočakávané chyby
+            LogError($"Neočakávaná chyba pri načítaní užívateľa {userId}", ex);
+            throw new ServiceException("Nepodarilo sa načítať užívateľa", ex);
+        }
+    }
+}
+
+// Vlastné výnimky
+public class UserNotFoundException : Exception {
+    public int UserId { get; }
+    
+    public UserNotFoundException(int userId) 
+        : base($"Užívateľ s ID {userId} nebol nájdený") {
+        UserId = userId;
+    }
+}
+
+public class DatabaseUnavailableException : Exception {
+    public DatabaseUnavailableException(string message, Exception innerException) 
+        : base(message, innerException) { }
 }
 ```
 
