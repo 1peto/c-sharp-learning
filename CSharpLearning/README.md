@@ -9,6 +9,8 @@ Vitaj v komplexnom kurze C#! Tento materiál pokrýva základné aj pokročilé 
 3. [Spracovanie Výnimiek (Exception Handling)](#3-spracovanie-výnimiek)
 4. [LINQ (Language Integrated Query)](#4-linq)
 5. [Praktické Cvičenia](#5-praktické-cvičenia)
+6. [WPF a MVVM Pattern](#6-wpf-a-mvvm-pattern)
+7. [gRPC - Google Remote Procedure Call](#7-grpc---google-remote-procedure-call)
 
 ---
 
@@ -1060,6 +1062,716 @@ cd 01_Classes
 # Skomiluj a spusti
 dotnet run
 ```
+
+---
+
+## 6. WPF a MVVM Pattern
+
+### Čo je WPF?
+
+**WPF (Windows Presentation Foundation)** je UI framework od Microsoftu pre vytváranie desktopových aplikácií. WPF využíva XAML pre definíciu UI a poskytuje pokročilé možnosti ako data binding, styling, templating a animácie.
+
+### Čo je MVVM?
+
+**MVVM (Model-View-ViewModel)** je návrhový vzor, ktorý oddeľuje UI logiku od business logiky:
+
+- **Model** - dátová vrstva (business logika, dáta)
+- **View** - UI vrstva (XAML, vizuálna reprezentácia)
+- **ViewModel** - sprostredkovateľ medzi View a Model (obsahuje prezentačnú logiku)
+
+```
+┌─────────────┐
+│    View     │ (XAML UI)
+│  (XAML)     │
+└──────┬──────┘
+       │ Data Binding
+       │
+┌──────▼──────┐
+│  ViewModel  │ (Properties, Commands)
+│             │
+└──────┬──────┘
+       │
+┌──────▼──────┐
+│    Model    │ (Business Logic, Data)
+└─────────────┘
+```
+
+**Výhody MVVM:**
+- Separation of Concerns - jasné oddelenie zodpovedností
+- Testovateľnosť - ViewModel možno testovať bez UI
+- Znovupoužiteľnosť - Model a ViewModel možno použiť s rôznymi View
+- Designer-Developer workflow - dizajnér pracuje na XAML, programátor na C#
+
+### INotifyPropertyChanged
+
+**INotifyPropertyChanged** je rozhranie, ktoré umožňuje objektom notifikovať UI o zmene properties. Je to základ data bindingu v WPF.
+
+```csharp
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
+public class Osoba : INotifyPropertyChanged
+{
+    private string meno;
+    private int vek;
+
+    public string Meno
+    {
+        get => meno;
+        set
+        {
+            if (meno != value)
+            {
+                meno = value;
+                OnPropertyChanged();  // Notifikuj UI o zmene
+            }
+        }
+    }
+
+    public int Vek
+    {
+        get => vek;
+        set
+        {
+            if (vek != value)
+            {
+                vek = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+}
+```
+
+**Ako to funguje:**
+1. Property sa zmení (`Meno = "Nová hodnota"`)
+2. Setter zavolá `OnPropertyChanged()`
+3. `PropertyChanged` event sa vyvolá
+4. UI (View) počúva tento event cez data binding
+5. UI sa automaticky aktualizuje
+
+**CallerMemberName attribute:**
+- Automaticky doplní názov property, ktorá volala metódu
+- Nemusíš písať `OnPropertyChanged("Meno")`, stačí `OnPropertyChanged()`
+
+### BaseViewModel - Znovupoužiteľná základná trieda
+
+```csharp
+public abstract class BaseViewModel : INotifyPropertyChanged
+{
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    // Helper metóda pre jednoduchšie setovanie properties
+    protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value))
+            return false;
+
+        field = value;
+        OnPropertyChanged(propertyName);
+        return true;
+    }
+}
+```
+
+**Použitie:**
+```csharp
+public class ProduktViewModel : BaseViewModel
+{
+    private string nazov;
+    private decimal cena;
+
+    public string Nazov
+    {
+        get => nazov;
+        set => SetProperty(ref nazov, value);  // Kratší zápis!
+    }
+
+    public decimal Cena
+    {
+        get => cena;
+        set => SetProperty(ref cena, value);
+    }
+}
+```
+
+### DelegateCommand - ICommand Implementácia
+
+**ICommand** je rozhranie pre binding príkazov (tlačidlá, menu items, atď.) v MVVM.
+
+```csharp
+using System;
+using System.Windows.Input;
+
+public class DelegateCommand : ICommand
+{
+    private readonly Action execute;
+    private readonly Func<bool> canExecute;
+
+    public DelegateCommand(Action execute, Func<bool> canExecute = null)
+    {
+        this.execute = execute ?? throw new ArgumentNullException(nameof(execute));
+        this.canExecute = canExecute;
+    }
+
+    public event EventHandler CanExecuteChanged;
+
+    public bool CanExecute(object parameter)
+    {
+        return canExecute == null || canExecute();
+    }
+
+    public void Execute(object parameter)
+    {
+        execute();
+    }
+
+    public void RaiseCanExecuteChanged()
+    {
+        CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+    }
+}
+```
+
+**Generická verzia s parametrom:**
+```csharp
+public class DelegateCommand<T> : ICommand
+{
+    private readonly Action<T> execute;
+    private readonly Func<T, bool> canExecute;
+
+    public DelegateCommand(Action<T> execute, Func<T, bool> canExecute = null)
+    {
+        this.execute = execute ?? throw new ArgumentNullException(nameof(execute));
+        this.canExecute = canExecute;
+    }
+
+    public event EventHandler CanExecuteChanged;
+
+    public bool CanExecute(object parameter)
+    {
+        return canExecute == null || canExecute((T)parameter);
+    }
+
+    public void Execute(object parameter)
+    {
+        execute((T)parameter);
+    }
+
+    public void RaiseCanExecuteChanged()
+    {
+        CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+    }
+}
+```
+
+### Kompletný MVVM príklad
+
+**Model:**
+```csharp
+public class UzivatelModel
+{
+    public int Id { get; set; }
+    public string Meno { get; set; }
+    public string Email { get; set; }
+}
+```
+
+**ViewModel:**
+```csharp
+public class UzivatelViewModel : BaseViewModel
+{
+    private string meno;
+    private string email;
+    private string stavovaSprава;
+
+    public string Meno
+    {
+        get => meno;
+        set
+        {
+            if (SetProperty(ref meno, value))
+            {
+                (UlozCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public string Email
+    {
+        get => email;
+        set
+        {
+            if (SetProperty(ref email, value))
+            {
+                (UlozCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public string StavovaSprава
+    {
+        get => stavovaSprава;
+        private set => SetProperty(ref stavovaSprава, value);
+    }
+
+    public ICommand UlozCommand { get; }
+    public ICommand ZrusCommand { get; }
+
+    public UzivatelViewModel()
+    {
+        UlozCommand = new DelegateCommand(
+            execute: Uloz,
+            canExecute: () => !string.IsNullOrWhiteSpace(Meno) && 
+                             !string.IsNullOrWhiteSpace(Email)
+        );
+
+        ZrusCommand = new DelegateCommand(Zrus);
+    }
+
+    private void Uloz()
+    {
+        var uzivatel = new UzivatelModel
+        {
+            Meno = this.Meno,
+            Email = this.Email
+        };
+
+        // Ulož do databázy...
+        StavovaSprава = $"Užívateľ {Meno} bol úspešne uložený!";
+    }
+
+    private void Zrus()
+    {
+        Meno = string.Empty;
+        Email = string.Empty;
+        StavovaSprава = "Formulár bol vymazaný.";
+    }
+}
+```
+
+**View (XAML):**
+```xml
+<Window x:Class="MyApp.UzivatelView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <Window.DataContext>
+        <local:UzivatelViewModel />
+    </Window.DataContext>
+    
+    <StackPanel Margin="10">
+        <TextBlock Text="Meno:" />
+        <TextBox Text="{Binding Meno, UpdateSourceTrigger=PropertyChanged}" />
+        
+        <TextBlock Text="Email:" Margin="0,10,0,0" />
+        <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" />
+        
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+            <Button Content="Uložiť" Command="{Binding UlozCommand}" Margin="0,0,5,0" />
+            <Button Content="Zrušiť" Command="{Binding ZrusCommand}" />
+        </StackPanel>
+        
+        <TextBlock Text="{Binding StavovaSprава}" Margin="0,10,0,0" 
+                   Foreground="Green" FontWeight="Bold" />
+    </StackPanel>
+</Window>
+```
+
+**Kľúčové koncepty:**
+- `{Binding Meno}` - data binding na property Meno
+- `UpdateSourceTrigger=PropertyChanged` - aktualizuj pri každej zmene
+- `Command="{Binding UlozCommand}"` - binding príkazu na tlačidlo
+- Tlačidlo sa automaticky deaktivuje, keď `CanExecute` vráti false
+
+### Best Practices
+
+**✅ DOBRE:**
+- Používaj BaseViewModel pre všetky ViewModely
+- Properties vo ViewModel nevracajú Model priamo, ale vlastné properties
+- Command používaj pre všetky akcie (tlačidlá, menu)
+- ViewModel nepozná View (žiadne using pre WPF)
+- Používaj `SetProperty` helper metódu
+
+**❌ ZLE:**
+- Code-behind vo View obsahuje business logiku
+- Priame manipulovanie s UI elementmi z ViewModelu
+- ViewModel obsahuje odkazy na View
+- Verejné fields namiesto properties s INotifyPropertyChanged
+
+---
+
+## 7. gRPC - Google Remote Procedure Call
+
+### Čo je gRPC?
+
+**gRPC** je moderný, vysokovýkonný RPC (Remote Procedure Call) framework vyvinutý spoločnosťou Google. Umožňuje klientom volať metódy na vzdialenom serveri, ako keby boli lokálne.
+
+**Kľúčové vlastnosti:**
+- ⚡ **Vysoký výkon** - používa HTTP/2 a binárnu serializáciu (Protocol Buffers)
+- 🌐 **Multi-platformový** - podporuje C#, Java, Python, Go, Node.js, atď.
+- 🔒 **Strongly typed** - definované cez Protocol Buffers (.proto súbory)
+- 🔄 **Bidirectional streaming** - real-time obojsmerná komunikácia
+- 🛡️ **Built-in features** - autentifikácia, load balancing, retry logic
+
+**Použitie:**
+- Mikroslužby (microservices)
+- Real-time aplikácie
+- Mobile-backend komunikácia
+- IoT systémy
+- Polyglot systémy (rôzne programovacie jazyky)
+
+### Protocol Buffers (Protobuf)
+
+**Protocol Buffers** je jazyk pre definíciu dátových štruktúr a služieb. Je to ako JSON alebo XML, ale:
+- Binárny formát (menší, rýchlejší)
+- Strongly typed
+- Automatické generovanie kódu
+
+**Príklad .proto súboru:**
+```protobuf
+syntax = "proto3";
+
+service UzivatelService {
+  rpc GetUzivatel (UzivatelRequest) returns (UzivatelResponse);
+  rpc CreateUzivatel (CreateUzivatelRequest) returns (UzivatelResponse);
+  rpc ListUzivatelia (EmptyRequest) returns (stream UzivatelResponse);
+}
+
+message UzivatelRequest {
+  int32 id = 1;
+}
+
+message UzivatelResponse {
+  int32 id = 1;
+  string meno = 2;
+  string email = 3;
+  int32 vek = 4;
+}
+
+message CreateUzivatelRequest {
+  string meno = 1;
+  string email = 2;
+  int32 vek = 3;
+}
+
+message EmptyRequest {}
+```
+
+**Z .proto súboru sa generuje C# kód:**
+```csharp
+// Automaticky vygenerované triedy:
+public class UzivatelRequest { public int Id { get; set; } }
+public class UzivatelResponse { 
+    public int Id { get; set; }
+    public string Meno { get; set; }
+    public string Email { get; set; }
+    public int Vek { get; set; }
+}
+```
+
+### Typy gRPC služieb
+
+gRPC podporuje 4 typy komunikácie:
+
+#### 1. Unary RPC (Request-Response)
+
+Klient pošle 1 požiadavku → Server odpovie 1 odpoveďou
+
+```protobuf
+rpc GetUzivatel (UzivatelRequest) returns (UzivatelResponse);
+```
+
+```csharp
+// Server implementácia
+public override Task<UzivatelResponse> GetUzivatel(
+    UzivatelRequest request, ServerCallContext context)
+{
+    var uzivatel = database.Find(request.Id);
+    return Task.FromResult(new UzivatelResponse
+    {
+        Id = uzivatel.Id,
+        Meno = uzivatel.Meno,
+        Email = uzivatel.Email
+    });
+}
+
+// Klient volanie
+var response = await client.GetUzivatelAsync(new UzivatelRequest { Id = 1 });
+```
+
+#### 2. Server Streaming RPC
+
+Klient pošle 1 požiadavku → Server posiela stream odpovedí
+
+```protobuf
+rpc ListUzivatelia (EmptyRequest) returns (stream UzivatelResponse);
+```
+
+```csharp
+// Server
+public override async Task ListUzivatelia(
+    EmptyRequest request, 
+    IServerStreamWriter<UzivatelResponse> responseStream, 
+    ServerCallContext context)
+{
+    foreach (var uzivatel in database.GetAll())
+    {
+        await responseStream.WriteAsync(new UzivatelResponse
+        {
+            Id = uzivatel.Id,
+            Meno = uzivatel.Meno
+        });
+    }
+}
+
+// Klient
+var call = client.ListUzivatelia(new EmptyRequest());
+await foreach (var uzivatel in call.ResponseStream.ReadAllAsync())
+{
+    Console.WriteLine($"{uzivatel.Id}: {uzivatel.Meno}");
+}
+```
+
+#### 3. Client Streaming RPC
+
+Klient posiela stream požiadaviek → Server odpovie 1 odpoveďou
+
+```protobuf
+rpc UploadData (stream DataChunk) returns (UploadResponse);
+```
+
+```csharp
+// Klient
+var call = client.UploadData();
+foreach (var chunk in dataChunks)
+{
+    await call.RequestStream.WriteAsync(chunk);
+}
+await call.RequestStream.CompleteAsync();
+var response = await call;
+```
+
+#### 4. Bidirectional Streaming RPC
+
+Klient a server si vymieňajú streamy (obojsmerná komunikácia)
+
+```protobuf
+rpc Chat (stream ChatMessage) returns (stream ChatMessage);
+```
+
+```csharp
+// Klient
+var call = client.Chat();
+
+// Čítanie odpovedí v pozadí
+var readTask = Task.Run(async () =>
+{
+    await foreach (var message in call.ResponseStream.ReadAllAsync())
+    {
+        Console.WriteLine($"Prijatá správa: {message.Text}");
+    }
+});
+
+// Posielanie správ
+await call.RequestStream.WriteAsync(new ChatMessage { Text = "Ahoj!" });
+await call.RequestStream.WriteAsync(new ChatMessage { Text = "Ako sa máš?" });
+await call.RequestStream.CompleteAsync();
+
+await readTask;
+```
+
+### gRPC v C# - Praktická implementácia
+
+**1. Vytvorenie .proto súboru:**
+```
+Protos/
+  └── uzivatel.proto
+```
+
+**2. .csproj konfigurácia:**
+```xml
+<ItemGroup>
+  <PackageReference Include="Grpc.AspNetCore" Version="2.XX.X" />
+</ItemGroup>
+
+<ItemGroup>
+  <Protobuf Include="Protos\uzivatel.proto" GrpcServices="Server" />
+</ItemGroup>
+```
+
+**3. Server implementácia:**
+```csharp
+public class UzivatelServiceImpl : UzivatelService.UzivatelServiceBase
+{
+    private readonly IUzivatelRepository repository;
+
+    public UzivatelServiceImpl(IUzivatelRepository repository)
+    {
+        this.repository = repository;
+    }
+
+    public override Task<UzivatelResponse> GetUzivatel(
+        UzivatelRequest request, 
+        ServerCallContext context)
+    {
+        var uzivatel = repository.GetById(request.Id);
+        
+        if (uzivatel == null)
+        {
+            throw new RpcException(new Status(StatusCode.NotFound, 
+                $"Užívateľ s ID {request.Id} nebol nájdený"));
+        }
+
+        return Task.FromResult(new UzivatelResponse
+        {
+            Id = uzivatel.Id,
+            Meno = uzivatel.Meno,
+            Email = uzivatel.Email
+        });
+    }
+}
+```
+
+**4. Server konfigurácia (Program.cs):**
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+// Pridaj gRPC služby
+builder.Services.AddGrpc();
+
+var app = builder.Build();
+
+// Mapuj gRPC službu
+app.MapGrpcService<UzivatelServiceImpl>();
+
+app.Run();
+```
+
+**5. Klient:**
+```csharp
+// Vytvor channel
+var channel = GrpcChannel.ForAddress("https://localhost:5001");
+var client = new UzivatelService.UzivatelServiceClient(channel);
+
+// Volaj službu
+try
+{
+    var response = await client.GetUzivatelAsync(new UzivatelRequest { Id = 1 });
+    Console.WriteLine($"Meno: {response.Meno}, Email: {response.Email}");
+}
+catch (RpcException ex)
+{
+    Console.WriteLine($"gRPC chyba: {ex.Status.Detail}");
+}
+```
+
+### gRPC vs REST API
+
+| Vlastnosť | gRPC | REST API |
+|-----------|------|----------|
+| **Protokol** | HTTP/2 | HTTP/1.1 |
+| **Formát dát** | Protobuf (binárny) | JSON (text) |
+| **Výkon** | Vysoký (menšie správy, rýchlejšia serializácia) | Nižší |
+| **Streaming** | Native podpora (4 typy) | Obmedzené (SSE, WebSockets) |
+| **Browser podpora** | Obmedzená (potrebný gRPC-Web) | Plná |
+| **Čitateľnosť** | Binárna (ťažko debugovateľná) | Ľahko čitateľná (JSON) |
+| **Code generation** | Automatická z .proto | Manuálna/tooling |
+| **Strongly typed** | Áno | Nie (závisí od implementácie) |
+| **契約** | .proto súbor | OpenAPI/Swagger (voliteľné) |
+
+**Kedy použiť gRPC:**
+✅ Mikroslužby s vysokými požiadavkami na výkon  
+✅ Real-time aplikácie (streaming)  
+✅ Polyglot systémy (rôzne jazyky)  
+✅ Interná komunikácia medzi službami  
+✅ Mobile-backend (efektívnejšie na mobilných sieťach)  
+
+**Kedy použiť REST:**
+✅ Verejné API pre webové aplikácie  
+✅ Potreba širokej kompatibility  
+✅ Jednoduché CRUD operácie  
+✅ Developer friendly, ľahko debugovateľné  
+✅ Browser-based klienti bez komplikácií  
+
+### Error Handling v gRPC
+
+```csharp
+// Server
+public override Task<UzivatelResponse> GetUzivatel(
+    UzivatelRequest request, ServerCallContext context)
+{
+    try
+    {
+        var uzivatel = repository.GetById(request.Id);
+        
+        if (uzivatel == null)
+        {
+            throw new RpcException(new Status(
+                StatusCode.NotFound, 
+                $"Užívateľ s ID {request.Id} nebol nájdený"));
+        }
+
+        return Task.FromResult(MapToResponse(uzivatel));
+    }
+    catch (Exception ex)
+    {
+        throw new RpcException(new Status(
+            StatusCode.Internal, 
+            "Interná chyba servera", 
+            ex));
+    }
+}
+
+// Klient
+try
+{
+    var response = await client.GetUzivatelAsync(request);
+}
+catch (RpcException ex)
+{
+    switch (ex.StatusCode)
+    {
+        case StatusCode.NotFound:
+            Console.WriteLine("Užívateľ nenájdený");
+            break;
+        case StatusCode.Unauthenticated:
+            Console.WriteLine("Nie si prihlásený");
+            break;
+        case StatusCode.Internal:
+            Console.WriteLine($"Chyba servera: {ex.Status.Detail}");
+            break;
+        default:
+            Console.WriteLine($"Neočakávaná chyba: {ex.Message}");
+            break;
+    }
+}
+```
+
+**gRPC Status kódy:**
+- `OK` - úspech
+- `NotFound` - zdroj nenájdený
+- `InvalidArgument` - neplatný argument
+- `Unauthenticated` - chýba autentifikácia
+- `PermissionDenied` - nedostatok oprávnení
+- `Internal` - interná chyba servera
+- `Unavailable` - služba nedostupná
+
+---
+
+## 5. Praktické Cvičenia
 
 ---
 
